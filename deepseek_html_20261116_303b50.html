@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>R & V Mindful Garden</title>
+    
+    <!-- APP ICON AND MANIFEST LINKS -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+<style>
+  :root {
+    --primary: #4a7c59; --primary-light: #eef5f0; --bg: #f8f6f2; --surface: #ffffff;
+    --text: #2c2c2c; --text-muted: #777; --border: #e0e0e0; --danger: #d9534f;
+    --yes: #7bcc9d; --no: #f1948a; --partly: #f9e79f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding-bottom: 80px; font-size: 16px; }
+  
+  .install-banner { background: #fff; border: 2px solid var(--primary); border-radius: 16px; padding: 16px; margin: 16px auto; max-width: 600px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; }
+  .install-banner h3 { font-size: 18px; color: var(--primary); margin-bottom: 8px; }
+  .install-banner p { font-size: 14px; color: #555; margin-bottom: 12px; }
+  .install-banner button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin: 4px; }
+  .install-banner .btn-skip { background: #eee; color: #333; }
+
+  .header { padding: 20px 16px 10px; display: flex; flex-direction: column; gap: 12px; }
+  .header h1 { font-size: 22px; font-weight: 700; text-align: center; color: var(--primary); }
+  .profile-selector { display: flex; background: #e8e6e1; border-radius: 12px; padding: 4px; max-width: 400px; margin: 0 auto; width: 100%; }
+  .profile-btn { flex: 1; padding: 12px; text-align: center; font-size: 16px; font-weight: 700; border-radius: 8px; cursor: pointer; color: var(--text-muted); border: none; background: transparent; transition: all 0.2s; }
+  .profile-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+  .container { padding: 0 16px; max-width: 600px; margin: 0 auto; }
+  .card { background: var(--surface); border-radius: 20px; padding: 24px 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); }
+  
+  .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--surface); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; width: 33%; height: 100%; }
+  .nav-item.active { color: var(--primary); }
+  .nav-icon { font-size: 24px; margin-bottom: 2px; }
+
+  .date-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .date-btn { background: var(--surface); border: 2px solid var(--border); width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  .date-title { font-size: 20px; font-weight: 700; text-align: center; }
+  .date-subtitle { font-size: 14px; color: var(--text-muted); text-align: center; }
+  
+  .week-strip { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 4px; }
+  .day-box { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; border: 2px solid transparent; }
+  .day-box.active { border-color: var(--primary); background: #fff; }
+  .day-box.has-data { background: var(--primary-light); color: var(--primary); }
+  .day-box .day-name { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+
+  .question-item { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 2px dashed #f0f0f0; }
+  .question-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .q-text { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #333; }
+  
+  .q-actions { display: flex; flex-direction: column; gap: 12px; }
+  .q-btn { padding: 16px; border: 2px solid var(--border); border-radius: 14px; background: var(--surface); font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.1s; width: 100%; }
+  .q-btn:active { transform: scale(0.98); }
+  .q-btn.selected[data-val="Yes"] { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+  .q-btn.selected[data-val="No"] { background: #fdedec; border-color: var(--danger); color: var(--danger); }
+  .q-btn.selected[data-val="Partly"] { background: #fef9e7; border-color: #f1c40f; color: #d4ac0d; }
+  
+  .followup { margin-top: 16px; display: none; }
+  .followup.show { display: block; animation: fadeIn 0.3s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .input-wrapper { position: relative; display: flex; align-items: flex-end; width: 100%; }
+  .followup input, .followup textarea, .custom-textarea { width: 100%; padding: 16px 55px 16px 16px; border: 2px solid var(--border); border-radius: 14px; font-family: inherit; font-size: 16px; background: #fafafa; resize: vertical; }
+  .followup input:focus, .followup textarea:focus, .custom-textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
+
+  .mic-btn { position: absolute; right: 10px; bottom: 10px; background: #e8e6e1; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .mic-btn.recording { background: #fdedec; color: var(--danger); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+  .lock-banner { background: #fff3cd; text-align: center; padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 2px solid #ffeeba; font-size: 16px; color: #856404; font-weight: 600; }
+  .btn-primary { background: var(--primary); color: #fff; border: none; padding: 18px; border-radius: 14px; font-size: 18px; font-weight: 700; width: 100%; cursor: pointer; margin-top: 16px; box-shadow: 0 4px 10px rgba(74, 124, 89, 0.3); }
+  .btn-primary:active { transform: scale(0.98); }
+  
+  .wizard-nav { display: flex; gap: 12px; margin-top: 24px; }
+  .wizard-nav button { flex: 1; padding: 16px; border-radius: 12px; border: none; font-weight: 700; font-size: 16px; cursor: pointer; }
+  .btn-prev { background: #eee; color: #444; }
+  .btn-next { background: var(--primary); color: #fff; }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .stat-box { background: var(--surface); border-radius: 16px; padding: 20px 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.04); }
+  .stat-val { font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+  .progress-bar-container { margin-top: 10px; height: 12px; background: #eee; border-radius: 6px; display: flex; overflow: hidden; }
+  .bar-yes { background: var(--yes); height: 100%; }
+  .bar-no { background: var(--no); height: 100%; }
+  .bar-partly { background: var(--partly); height: 100%; }
+
+  .settings-group { margin-bottom: 30px; }
+  .settings-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+  .settings-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+  .btn-outline { background: var(--surface); color: var(--text); border: 2px solid var(--border); padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; margin-bottom: 12px; display: block; text-align: center; }
+  .btn-danger { background: transparent; color: var(--danger); border: 2px solid var(--danger); padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; }
+  .toggle-group { display: flex; background: #eee; border-radius: 12px; padding: 6px; }
+  .toggle-btn { flex: 1; padding: 12px; text-align: center; font-size: 15px; font-weight: 700; border-radius: 8px; cursor: pointer; color: var(--text-muted); }
+  .toggle-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+  .hidden { display: none !important; }
+  .status { text-align: center; font-size: 15px; color: var(--primary); margin-top: 12px; height: 24px; font-weight: 600; }
+  
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .modal-content { background: var(--surface); border-radius: 16px; padding: 24px; width: 100%; max-width: 500px; }
+  .modal-content textarea { width: 100%; height: 200px; margin-top: 12px; padding: 12px; font-family: monospace; border: 2px solid var(--border); border-radius: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div id="installBanner" class="install-banner">
+  <h3>📲 Add App to Home Screen</h3>
+  <p>Tap the button below so you can open this like a real app without the browser.</p>
+  <button id="btnInstall">Install Now</button>
+  <button class="btn-skip" onclick="document.getElementById('installBanner').style.display='none'">Skip for now</button>
+</div>
+
+<div class="header">
+  <h1>R & V Mindful Garden</h1>
+  <div class="profile-selector">
+    <button class="profile-btn active" id="btnRiyu" onclick="switchProfile('riyu')">👦 Riyu</button>
+    <button class="profile-btn" id="btnVihu" onclick="switchProfile('vihu')">👦 Vihu</button>
+  </div>
+</div>
+
+<div id="tab-today" class="container tab-content">
+  <div class="date-nav">
+    <button class="date-btn" onclick="changeDate(-1)">‹</button>
+    <div>
+      <div class="date-title" id="displayDateTitle">-</div>
+      <div class="date-subtitle" id="displayDateSub">-</div>
+    </div>
+    <button class="date-btn" onclick="changeDate(1)">›</button>
+  </div>
+
+  <div class="week-strip" id="weekStrip"></div>
+
+  <div id="lockBanner" class="lock-banner hidden">
+    🔒 This day is locked.<br>
+    <button class="btn-primary" onclick="unlockDay()">Unlock to edit</button>
+  </div>
+
+  <div id="questionsContainer" class="card"></div>
+  
+  <div class="wizard-nav hidden" id="wizardNav">
+    <button class="btn-prev" onclick="wizardMove(-1)">← Previous</button>
+    <button class="btn-next" onclick="wizardMove(1)" id="btnWizardNext">Next →</button>
+  </div>
+
+  <div class="status" id="statusMsg"></div>
+  <button class="btn-primary" id="saveBtn" onclick="saveData()">💾 Save Check-In</button>
+</div>
+
+<div id="tab-progress" class="container tab-content hidden">
+  <div class="stats-grid">
+    <div class="stat-box"><div class="stat-val" id="statPct">0%</div><div class="stat-label">Yes Answers</div></div>
+    <div class="stat-box"><div class="stat-val" id="statDays">0</div><div class="stat-label">Days Logged</div></div>
+    <div class="stat-box"><div class="stat-val" id="statStreak">0</div><div class="stat-label">Day Streak</div></div>
+  </div>
+  <h3 style="margin-bottom: 16px; font-size: 20px; font-weight: 700;" id="progressTitle">Progress</h3>
+  <div class="card" id="progressList"></div>
+</div>
+
+<div id="tab-settings" class="container tab-content hidden">
+  <div class="card">
+    <div class="settings-group">
+      <div class="settings-title">How to answer</div>
+      <div class="settings-desc">One question at a time is easier. Show all shows the whole list.</div>
+      <div class="toggle-group">
+        <div class="toggle-btn" id="btnModeWizard" onclick="setViewMode('wizard')">One Question at a Time</div>
+        <div class="toggle-btn active" id="btnModeList" onclick="setViewMode('list')">Show All Questions</div>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-title">Save a backup</div>
+      <div class="settings-desc">If you clear your browser or change phones, you will lose your data. Save a backup to keep it safe.</div>
+      <button class="btn-outline" onclick="downloadBackup()">Save Backup File</button>
+      <button class="btn-outline" onclick="showCopyTextModal()">Copy Backup Text</button>
+    </div>
+    <div class="settings-group">
+      <div class="settings-title">Restore a backup</div>
+      <div class="settings-desc">Bring back your saved data.</div>
+      <button class="btn-outline" onclick="document.getElementById('fileInput').click()">Choose Backup File</button>
+      <input type="file" id="fileInput" accept=".json" class="hidden" onchange="handleFileUpload(event)">
+      <button class="btn-outline" onclick="showPasteTextModal()">Paste Backup Text</button>
+    </div>
+    <div class="settings-group">
+      <div class="settings-title">Open in a spreadsheet</div>
+      <div class="settings-desc">Download everything as a table you can open in Excel or Google Sheets.</div>
+      <button class="btn-outline" onclick="downloadCSV()">Download CSV</button>
+    </div>
+    <div class="settings-group">
+      <div class="settings-title" style="color: var(--danger)">Erase everything</div>
+      <div class="settings-desc">Removes all answers for both children from this phone forever.</div>
+      <button class="btn-danger" onclick="eraseAllData()">Erase All Data</button>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-today" onclick="switchTab('today')"><div class="nav-icon">☑️</div><div>Today</div></div>
+  <div class="nav-item" id="nav-progress" onclick="switchTab('progress')"><div class="nav-icon">📊</div><div>Progress</div></div>
+  <div class="nav-item" id="nav-settings" onclick="switchTab('settings')"><div class="nav-icon">⚙️</div><div>Settings</div></div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h3 id="modalTitle">Backup</h3>
+    <textarea id="modalTextarea" readonly></textarea>
+    <div style="display:flex; gap:12px; margin-top:20px;">
+      <button class="btn-outline" onclick="closeModal()" style="margin-bottom:0;">Close</button>
+      <button class="btn-primary" id="modalActionBtn" style="margin-top:0;">Action</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= INSTALL APP LOGIC ================= */
+let deferredPrompt;
+const installBanner = document.getElementById('installBanner');
+const btnInstall = document.getElementById('btnInstall');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBanner.style.display = 'block';
+});
+
+btnInstall.addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      installBanner.style.display = 'none';
+    }
+    deferredPrompt = null;
+  } else {
+    alert("To install, tap the browser menu (⋮ or ⤴) and select 'Add to Home Screen' or 'Install App'.");
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  installBanner.style.display = 'none';
+  deferredPrompt = null;
+});
+
+/* ================= DATA & CONFIG ================= */
+const STORAGE_KEY = 'family_self_check_kids_v1';
+
+const QUESTIONS = [
+  { id: 'q1', text: '1. Did I notice if someone criticized me today?', followup: 'How did my mind react?' },
+  { id: 'q2', text: '2. Did I notice if someone praised me today?', followup: 'How did my mind react?' },
+  { id: 'q3', text: '3. Did I appreciate when someone did a good thing?', followup: 'What did they do?' },
+  { id: 'q4', text: '4. Was I aware of what I was doing? (Playing, talking, listening, watching TV, studying)', followup: 'What was I aware of?' },
+  { id: 'q5', text: '5. Did I notice when I felt fear, anger, or sadness?', followup: 'What triggered it?' },
+  { id: 'q6', text: '6. Did I notice if I was crying?', followup: 'What was happening at that moment?' },
+  { id: 'q7', text: '7. Was I aware of what I was saying when I spoke today?', followup: 'Did I say everything I wanted to say clearly?' },
+  { id: 'q8', text: '8. Was I aware of what the other person was saying when they spoke to me?', followup: 'Did I listen fully, or was I distracted?' },
+  { id: 'q9', text: '9. Did I notice if I ate my food on time and without help?', followup: 'If not, what distracted me?' },
+  { id: 'q10', text: '10. Is there anything else I noticed about myself or my day?' }
+];
+
+/* ================= STATE ================= */
+let activeProfile = 'riyu'; 
+let currentDate = getTodayStr();
+let masterData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { riyu: {}, vihu: {} };
+if (!masterData.riyu) masterData.riyu = {};
+if (!masterData.vihu) masterData.vihu = {};
+
+let appData = masterData[activeProfile]; 
+let isLocked = true;
+let viewMode = 'list'; 
+let currentWizardQ = 0; 
+
+/* ================= SPEECH RECOGNITION ================= */
+let activeRecognition = null;
+let activeMicBtn = null;
+
+function startSpeech(inputId, btnElement) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert("Speech recognition is not supported on this browser. Please type instead.");
+    return;
+  }
+
+  if (activeRecognition) {
+    activeRecognition.stop();
+    if (activeMicBtn === btnElement) return; 
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  activeRecognition = new SpeechRecognition();
+  activeRecognition.continuous = false;
+  activeRecognition.interimResults = false;
+  activeRecognition.lang = 'en-US';
+
+  activeRecognition.onstart = function() {
+    activeMicBtn = btnElement;
+    btnElement.classList.add('recording');
+    btnElement.textContent = '🛑';
+  };
+
+  activeRecognition.onresult = function(event) {
+    const transcript = event.results[0][0].transcript;
+    const inputEl = document.getElementById(inputId);
+    if (inputEl) {
+      const currentVal = inputEl.value.trim();
+      inputEl.value = currentVal ? currentVal + ' ' + transcript : transcript;
+      if (inputId.startsWith('q')) {
+        const qId = inputId.split('_')[0];
+        saveDetail(qId, inputEl.value);
+      }
+    }
+  };
+
+  activeRecognition.onerror = function(event) {
+    alert("Could not hear you clearly. Please try again or type.");
+    resetMicState();
+  };
+
+  activeRecognition.onend = function() {
+    resetMicState();
+  };
+
+  activeRecognition.start();
+}
+
+function resetMicState() {
+  if (activeMicBtn) {
+    activeMicBtn.classList.remove('recording');
+    activeMicBtn.textContent = '🎤';
+  }
+  activeMicBtn = null;
+  activeRecognition = null;
+}
+
+/* ================= INIT & ROUTING ================= */
+function init() {
+  renderWeekStrip();
+  loadDate(currentDate);
+  updateProgressTab();
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+  document.getElementById(`nav-${tabId}`).classList.add('active');
+  if (tabId === 'progress') updateProgressTab();
+}
+
+function switchProfile(profile) {
+  activeProfile = profile;
+  appData = masterData[activeProfile]; 
+  document.getElementById('btnRiyu').classList.toggle('active', profile === 'riyu');
+  document.getElementById('btnVihu').classList.toggle('active', profile === 'vihu');
+  loadDate(currentDate);
+  updateProgressTab();
+}
+
+function getTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function parseDate(str) {
+  const [y, m, d] = str.split('-');
+  return new Date(y, m-1, d);
+}
+
+/* ================= DATE NAVIGATION ================= */
+function changeDate(days) {
+  const d = parseDate(currentDate);
+  d.setDate(d.getDate() + days);
+  const newDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  loadDate(newDate);
+}
+
+function renderWeekStrip() {
+  const strip = document.getElementById('weekStrip');
+  strip.innerHTML = '';
+  const d = parseDate(currentDate);
+  const dayOfWeek = d.getDay(); 
+  const startOfWeek = new Date(d);
+  startOfWeek.setDate(d.getDate() - dayOfWeek);
+  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  
+  for (let i = 0; i < 7; i++) {
+    const dayDate = new Date(startOfWeek);
+    dayDate.setDate(startOfWeek.getDate() + i);
+    const dateStr = dayDate.getFullYear() + '-' + String(dayDate.getMonth()+1).padStart(2,'0') + '-' + String(dayDate.getDate()).padStart(2,'0');
+    const hasData = appData[dateStr] && Object.keys(appData[dateStr].answers || {}).length > 0;
+    
+    const el = document.createElement('div');
+    el.className = 'day-box';
+    if (dateStr === currentDate) el.classList.add('active');
+    if (hasData) el.classList.add('has-data');
+    
+    el.innerHTML = `<div class="day-name">${days[i]}</div><div>${dayDate.getDate()}</div>`;
+    el.onclick = () => loadDate(dateStr);
+    strip.appendChild(el);
+  }
+}
+
+/* ================= TODAY VIEW ================= */
+function loadDate(dateStr) {
+  currentDate = dateStr;
+  const d = parseDate(dateStr);
+  document.getElementById('displayDateTitle').textContent = d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' });
+  document.getElementById('displayDateSub').textContent = dateStr === getTodayStr() ? "Today" : `${Math.floor((new Date() - d) / (1000*60*60*24))} days ago`;
+  
+  isLocked = dateStr < getTodayStr() && appData[dateStr];
+  document.getElementById('lockBanner').classList.toggle('hidden', !isLocked);
+  document.getElementById('saveBtn').style.display = isLocked ? 'none' : 'block';
+  
+  renderWeekStrip();
+  renderQuestions();
+}
+
+function renderQuestions() {
+  const container = document.getElementById('questionsContainer');
+  container.innerHTML = '';
+  const savedData = appData[currentDate] || { answers: {}, details: {} };
+  
+  QUESTIONS.forEach((q, index) => {
+    const ans = savedData.answers[q.id] || '';
+    const detail = savedData.details[q.id] || '';
+    const isWizard = viewMode === 'wizard';
+    const hideClass = (isWizard && index !== currentWizardQ) ? 'hidden' : '';
+
+    let html = `<div class="question-item ${hideClass}" data-index="${index}">
+      <div class="q-text">${q.text}</div>
+      <div class="q-actions">`;
+      
+    if (q.id === 'q10') {
+       html += `<div class="input-wrapper">
+         <textarea id="${q.id}_detail" class="custom-textarea" style="height: 100px;" placeholder="Tap the mic and speak, or type here..." oninput="saveDetail('${q.id}', this.value)">${detail}</textarea>
+         <button class="mic-btn" onclick="startSpeech('${q.id}_detail', this)" title="Speak">🎤</button>
+       </div>`;
+    } else {
+       html += `
+        <button class="q-btn ${ans === 'Yes' ? 'selected' : ''}" data-id="${q.id}" data-val="Yes" onclick="selectAnswer('${q.id}', 'Yes')">😊 Yes</button>
+        <button class="q-btn ${ans === 'No' ? 'selected' : ''}" data-id="${q.id}" data-val="No" onclick="selectAnswer('${q.id}', 'No')">😟 No</button>
+       `;
+       if (q.followup) {
+         html += `<button class="q-btn ${ans === 'Partly' ? 'selected' : ''}" data-id="${q.id}" data-val="Partly" onclick="selectAnswer('${q.id}', 'Partly')">😐 Partly</button>`;
+       }
+    }
+    
+    html += `</div>`;
+    
+    if (q.followup) {
+      html += `<div class="followup ${ans ? 'show' : ''}" id="follow_${q.id}">
+        <div class="input-wrapper">
+          <input type="text" id="${q.id}_detail" placeholder="${q.followup}" value="${detail}" oninput="saveDetail('${q.id}', this.value)">
+          <button class="mic-btn" onclick="startSpeech('${q.id}_detail', this)" title="Speak">🎤</button>
+        </div>
+      </div>`;
+    }
+    
+    html += `</div>`;
+    container.innerHTML += html;
+  });
+
+  if (isLocked) {
+    container.querySelectorAll('button, input, textarea').forEach(el => el.disabled = true);
+  }
+  updateWizardUI();
+}
+
+function selectAnswer(qId, val) {
+  if (isLocked) return;
+  if (!appData[currentDate]) appData[currentDate] = { answers: {}, details: {} };
+  appData[currentDate].answers[qId] = val;
+  
+  document.querySelectorAll(`.q-btn[data-id="${qId}"]`).forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.val === val);
+  });
+  
+  const followupDiv = document.getElementById(`follow_${qId}`);
+  if (followupDiv) followupDiv.classList.add('show');
+  
+  showStatus('Answer recorded');
+}
+
+function saveDetail(qId, val) {
+  if (!appData[currentDate]) appData[currentDate] = { answers: {}, details: {} };
+  appData[currentDate].details[qId] = val;
+}
+
+function unlockDay() {
+  isLocked = false;
+  document.getElementById('lockBanner').classList.add('hidden');
+  document.getElementById('saveBtn').style.display = 'block';
+  renderQuestions();
+}
+
+function saveData() {
+  const q10Textarea = document.getElementById('q10_detail');
+  if (q10Textarea) saveDetail('q10', q10Textarea.value);
+  
+  appData[currentDate]._savedAt = new Date().toISOString();
+  masterData[activeProfile] = appData;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(masterData));
+  
+  showStatus(`✅ ${activeProfile === 'riyu' ? 'Riyu' : 'Vihu'}'s check-in saved!`);
+  updateProgressTab();
+}
+
+function showStatus(msg) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  setTimeout(() => { if(el.textContent === msg) el.textContent = ''; }, 3000);
+}
+
+/* ================= WIZARD MODE ================= */
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById('btnModeWizard').classList.toggle('active', mode === 'wizard');
+  document.getElementById('btnModeList').classList.toggle('active', mode === 'list');
+  document.getElementById('wizardNav').classList.toggle('hidden', mode !== 'wizard');
+  renderQuestions();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function wizardMove(dir) {
+  currentWizardQ += dir;
+  if (currentWizardQ < 0) currentWizardQ = 0;
+  if (currentWizardQ >= QUESTIONS.length) currentWizardQ = QUESTIONS.length - 1;
+  renderQuestions();
+  window.scrollTo({ top: 0, behavior: 'smooth' }); 
+}
+
+function updateWizardUI() {
+  if (viewMode !== 'wizard') return;
+  const btnNext = document.getElementById('btnWizardNext');
+  btnNext.textContent = currentWizardQ === QUESTIONS.length - 1 ? 'Finish' : 'Next →';
+}
+
+/* ================= PROGRESS TAB ================= */
+function updateProgressTab() {
+  let totalYes = 0, totalAnswers = 0;
+  let daysLogged = Object.keys(appData).length;
+  const perQuestion = {};
+  QUESTIONS.forEach(q => perQuestion[q.id] = { yes: 0, no: 0, partly: 0, total: 0 });
+
+  Object.keys(appData).forEach(date => {
+    const dayData = appData[date];
+    if (dayData.answers) {
+      Object.keys(dayData.answers).forEach(qId => {
+        const val = dayData.answers[qId];
+        if (perQuestion[qId]) {
+          perQuestion[qId].total++;
+          if (val === 'Yes') { perQuestion[qId].yes++; totalYes++; totalAnswers++; }
+          if (val === 'No') { perQuestion[qId].no++; totalAnswers++; }
+          if (val === 'Partly') { perQuestion[qId].partly++; totalAnswers++; }
+        }
+      });
+    }
+  });
+
+  document.getElementById('statDays').textContent = daysLogged;
+  document.getElementById('statPct').textContent = totalAnswers ? Math.round((totalYes / totalAnswers) * 100) + '%' : '0%';
+  document.getElementById('progressTitle').textContent = (activeProfile === 'riyu' ? 'Riyu' : 'Vihu') + "'s Progress";
+  
+  const list = document.getElementById('progressList');
+  list.innerHTML = '';
+  QUESTIONS.forEach(q => {
+    const stats = perQuestion[q.id];
+    if (stats.total === 0) return;
+    const yesPct = (stats.yes / stats.total) * 100;
+    const noPct = (stats.no / stats.total) * 100;
+    const partlyPct = (stats.partly / stats.total) * 100;
+    
+    list.innerHTML += `
+      <div style="margin-bottom: 16px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+          <span style="font-weight:500; max-width:70%;">${q.text}</span>
+          <span style="color:#888;">${stats.yes} yes · ${stats.no} no</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="bar-yes" style="width: ${yesPct}%"></div>
+          <div class="bar-partly" style="width: ${partlyPct}%"></div>
+          <div class="bar-no" style="width: ${noPct}%"></div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+/* ================= BACKUP & SETTINGS ================= */
+function downloadBackup() {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(masterData, null, 2));
+  const dlAnchorElem = document.createElement('a');
+  dlAnchorElem.setAttribute("href", dataStr);
+  dlAnchorElem.setAttribute("download", `family_selfcheck_backup_${getTodayStr()}.json`);
+  dlAnchorElem.click();
+}
+
+function downloadCSV() {
+  let csv = "Child,Date," + QUESTIONS.map(q => `"${q.text}"`).join(',') + "\n";
+  ['riyu', 'vihu'].forEach(child => {
+    const childData = masterData[child] || {};
+    Object.keys(childData).sort().forEach(date => {
+      const row = [child, date];
+      QUESTIONS.forEach(q => {
+        row.push(childData[date].answers[q.id] || '');
+      });
+      csv += row.join(',') + "\n";
+    });
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `family_export_${getTodayStr()}.csv`;
+  link.click();
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (parsed.riyu || parsed.vihu) {
+        masterData = parsed;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(masterData));
+        appData = masterData[activeProfile];
+        alert("Successfully restored family data.");
+        loadDate(currentDate);
+        updateProgressTab();
+      } else {
+        alert("Invalid backup format.");
+      }
+    } catch(err) { alert("Invalid backup file."); }
+  };
+  reader.readAsText(file);
+}
+
+function showCopyTextModal() {
+  const ta = document.getElementById('modalTextarea');
+  ta.value = JSON.stringify(masterData, null, 2);
+  document.getElementById('modalTitle').textContent = "Backup Text (Copy this)";
+  const btn = document.getElementById('modalActionBtn');
+  btn.textContent = "Copy to Clipboard";
+  btn.onclick = () => { ta.select(); document.execCommand('copy'); alert("Copied!"); };
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+
+function showPasteTextModal() {
+  const ta = document.getElementById('modalTextarea');
+  ta.value = ''; ta.readOnly = false;
+  document.getElementById('modalTitle').textContent = "Restore Text (Paste here)";
+  const btn = document.getElementById('modalActionBtn');
+  btn.textContent = "Restore";
+  btn.onclick = () => {
+    try {
+      const parsed = JSON.parse(ta.value);
+      if (parsed.riyu || parsed.vihu) {
+        masterData = parsed;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(masterData));
+        location.reload();
+      } else {
+        alert("Invalid backup format.");
+      }
+    } catch(e) { alert("Invalid text format."); }
+  };
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+  document.getElementById('modalTextarea').readOnly = true;
+}
+
+function eraseAllData() {
+  if (confirm("Are you sure? This will permanently delete all saved check-ins for both children.")) {
+    localStorage.removeItem(STORAGE_KEY);
+    masterData = { riyu: {}, vihu: {} };
+    appData = masterData[activeProfile];
+    location.reload();
+  }
+}
+
+// Start
+init();
+</script>
+</body>
+</html>
